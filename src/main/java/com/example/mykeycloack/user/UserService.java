@@ -21,12 +21,19 @@ public class UserService {
         // 1. 비밀번호 암호화
         String encodedPassword = passwordEncoder.encode(user.getPassword());
         user.setPassword(encodedPassword);
+        user.setRole("admin");
 
         // 2. 데이터베이스에 사용자 저장
         User savedUser = userRepository.save(user);
 
         // 3. Keycloak에 사용자 추가 요청
         keycloakService.saveUserToKeycloak(user);
+
+        // 4. Keycloak에서 사용자 역할 매핑 (수정된 부분)
+        if (user.getRole() != null) {
+            keycloakService.assignRoleToUser(user.getUsername(), user.getRole());
+        }
+
 
         return savedUser; // 저장된 사용자 반환
     }

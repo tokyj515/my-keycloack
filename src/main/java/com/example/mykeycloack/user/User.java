@@ -27,4 +27,6 @@ public class User {
     private String email;
     private String password;
 
+    // 추가된 필드: 역할 정보 (Keycloak 역할 매핑에 사용)
+    private String role; // 수정된 부분: Keycloak 역할 정보 저장
 }

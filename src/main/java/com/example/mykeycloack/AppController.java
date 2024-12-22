@@ -47,7 +47,7 @@ public class AppController {
     public String registerUser(@ModelAttribute User user, Model model) {
         // User 객체를 KeycloakService에 전달
         User savedUser = userService.registerUser(user);
-
+        System.out.println("savedUser: " + savedUser.toString());
         return "redirect:/home"; // 회원가입 완료 후 홈으로 리디렉션
     }
 
