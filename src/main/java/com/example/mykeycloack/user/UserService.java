@@ -22,7 +22,7 @@ public class UserService {
         // 1. 비밀번호 암호화
         String encodedPassword = passwordEncoder.encode(user.getPassword());
         user.setPassword(encodedPassword);
-        user.setRole("admin");
+        user.setRole("cli-admin");
 
         // 2. 데이터베이스에 사용자 저장
         User savedUser = userRepository.save(user);
@@ -32,7 +32,7 @@ public class UserService {
 
         // 4. Keycloak에서 사용자 역할 매핑 (수정된 부분)
         if (user.getRole() != null) {
-            keycloakService.assignRoleToUser(user.getUsername(), user.getRole());
+            keycloakService.assignClientRoleToUser(user.getUsername(),"my-service-client2", user.getRole());
         }
 
 
@@ -44,7 +44,7 @@ public class UserService {
             System.out.println("서비스단:" + user.getUsername() + " "+ user.getPassword());
 
             // Keycloak에서 액세스 토큰 요청
-            String accessToken = keycloakService.getUserAccessToken(user.getUsername());
+            String accessToken = keycloakService.getUserAccessToken(user.getUsername(), user.getPassword());
 
             System.out.println("로그인: " +accessToken);
 

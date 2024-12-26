@@ -22,17 +22,29 @@ spring:
 spring:
   security:
     oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/realms/my-realm
+          jwk-set-uri: http://localhost:8080/realms/my-realm/protocol/openid-connect/certs
       client:
         registration:
           keycloak:
-            client-id: my-service-client  # Keycloak 클라이언트 ID
-            client-secret: 75KFl4FyJoLEswJa6ghTk8oIsAMGq7ij  # Keycloak 클라이언트 비밀키
+            client-id: my-service-client2  # Keycloak 클라이언트 ID
+            client-secret: d6eglWPWDxwU0suWHPvgIqLY8zVb53rS  # Keycloak 클라이언트 비밀키
             scope: openid, profile, email
             authorization-grant-type: authorization_code
             redirect-uri: "{baseUrl}/login/oauth2/code/keycloak"
         provider:
           keycloak:
             issuer-uri: http://localhost:8080/realms/my-realm
+
+keycloak:
+  realm: my-realm
+  resource: my-service-client2
+  auth-server-url: http://localhost:8080/auth
+  credentials:
+    secret: d6eglWPWDxwU0suWHPvgIqLY8zVb53rS
+
 
 
 logging:
@@ -42,3 +54,5 @@ logging:
     org:
       springframework:
         security: DEBUG
+
+

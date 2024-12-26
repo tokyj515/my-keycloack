@@ -16,29 +16,19 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // CSRF 비활성화 (테스트 환경에서만)
+                .csrf(csrf -> csrf.disable()) // CSRF 비활성화
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/admin").hasAuthority("ADMIN") // 관리자 페이지 접근
-                        .requestMatchers("/user").authenticated() // 사용자 페이지 접근
-                        .requestMatchers("/", "/register", "/home", "/css/**", "/js/**").permitAll() // 공용 페이지 접근
-                        .anyRequest().denyAll() // 나머지 요청 거부
+                        .requestMatchers("/admin").hasAuthority("ADMIN") // 관리자 접근
+                        .requestMatchers("/user").authenticated() // 인증된 사용자
+                        .requestMatchers("/realms/**").permitAll() // Keycloak API 허용
+                        .requestMatchers("/", "/register", "/home", "/css/**", "/js/**").permitAll() // 공용 리소스
+                        .anyRequest().authenticated() // 나머지 요청 인증 필요
                 )
-                .formLogin(form -> form
-                        .disable() // 기본 폼 로그인 비활성화
-                )
-//                .formLogin(form -> form
-//                        .loginPage("/login") // 커스텀 로그인 페이지
-////                        .defaultSuccessUrl("/home", true) // 로그인 성공 후 리디렉션
-////                        .failureUrl("/login?error=true") // 로그인 실패 시
-//                        .permitAll()
-//                )
-                .logout(logout -> logout
-                        .logoutUrl("/logout")
-                        .logoutSuccessUrl("/login") // 로그아웃 성공 후 리디렉션
-//                        .invalidateHttpSession(true)
-                        .permitAll()
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(jwt -> jwt
+                                .jwkSetUri("http://localhost:8080/realms/my-realm/protocol/openid-connect/certs")
+                        )
                 );
         return http.build();
     }
 }
-

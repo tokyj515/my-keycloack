@@ -6,8 +6,11 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -85,17 +88,17 @@ public class KeycloakService {
     /**
      * Keycloak 사용자에게 역할(Role)을 할당하는 메서드.
      */
-    public void assignRoleToUser(String username, String roleName) {
+    public void assignClientRoleToUser(String username, String clientId, String roleName) {
         // 사용자 ID 조회
         String userId = getUserId(username);
 
         // 역할 ID 조회
-        String roleId = getRoleId(roleName);
+        String roleId = getClientRoleId(clientId, roleName);
 
         // Keycloak API URL
         String keycloakUrl = String.format(
-                "http://localhost:8080/admin/realms/my-realm/users/%s/role-mappings/realm",
-                userId
+                "http://localhost:8080/admin/realms/my-realm/users/%s/role-mappings/clients/%s",
+                userId, getClientId(clientId)
         );
 
         String accessToken = getAdminAccessToken();
@@ -106,22 +109,108 @@ public class KeycloakService {
 
         // 역할 정보 JSON
         String body = """
-    [
-        {
-            "id": "%s",
-            "name": "%s"
-        }
-    ]
-    """.formatted(roleId, roleName);
+            [
+                {
+                    "id": "%s",
+                    "name": "%s"
+                }
+            ]
+            """.formatted(roleId, roleName);
 
         HttpEntity<String> request = new HttpEntity<>(body, headers);
 
         ResponseEntity<String> response = restTemplate.postForEntity(keycloakUrl, request, String.class);
 
         if (!response.getStatusCode().is2xxSuccessful()) {
-            throw new RuntimeException("Failed to assign role to user: " + response.getBody());
+            throw new RuntimeException("Failed to assign client role to user: " + response.getBody());
         }
     }
+
+    /**
+     * Keycloak에서 클라이언트 역할(Client Role) ID를 조회하는 메서드.
+     */
+    private String getClientRoleId(String clientId, String roleName) {
+        String keycloakUrl = String.format(
+                "http://localhost:8080/admin/realms/my-realm/clients/%s/roles/%s",
+                getClientId(clientId), roleName
+        );
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(getAdminAccessToken());
+
+        HttpEntity<Void> request = new HttpEntity<>(headers);
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                keycloakUrl, HttpMethod.GET, request, Map.class
+        );
+
+        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+            return (String) response.getBody().get("id");
+        } else {
+            throw new RuntimeException("Client role not found in Keycloak: " + roleName);
+        }
+    }
+
+    /**
+     * Keycloak에서 클라이언트 ID를 조회하는 메서드.
+     */
+    private String getClientId(String clientId) {
+        String keycloakUrl = "http://localhost:8080/admin/realms/my-realm/clients?clientId=" + clientId;
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(getAdminAccessToken());
+
+        HttpEntity<Void> request = new HttpEntity<>(headers);
+
+        ResponseEntity<List> response = restTemplate.exchange(
+                keycloakUrl, HttpMethod.GET, request, List.class
+        );
+
+        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null && !response.getBody().isEmpty()) {
+            Map<String, Object> client = (Map<String, Object>) response.getBody().get(0);
+            return (String) client.get("id");
+        } else {
+            throw new RuntimeException("Failed to fetch client ID from Keycloak for clientId: " + clientId);
+        }
+    }
+
+//    public void assignRoleToUser(String username, String roleName) {
+//        // 사용자 ID 조회
+//        String userId = getUserId(username);
+//
+//        // 역할 ID 조회
+//        String roleId = getRoleId(roleName);
+//
+//        // Keycloak API URL
+//        String keycloakUrl = String.format(
+//                "http://localhost:8080/admin/realms/my-realm/users/%s/role-mappings/realm",
+//                userId
+//        );
+//
+//        String accessToken = getAdminAccessToken();
+//
+//        HttpHeaders headers = new HttpHeaders();
+//        headers.setContentType(MediaType.APPLICATION_JSON);
+//        headers.setBearerAuth(accessToken);
+//
+//        // 역할 정보 JSON
+//        String body = """
+//    [
+//        {
+//            "id": "%s",
+//            "name": "%s"
+//        }
+//    ]
+//    """.formatted(roleId, roleName);
+//
+//        HttpEntity<String> request = new HttpEntity<>(body, headers);
+//
+//        ResponseEntity<String> response = restTemplate.postForEntity(keycloakUrl, request, String.class);
+//
+//        if (!response.getStatusCode().is2xxSuccessful()) {
+//            throw new RuntimeException("Failed to assign role to user: " + response.getBody());
+//        }
+//    }
 
 
 
@@ -177,60 +266,44 @@ public class KeycloakService {
 
 
     // 유저 정보를 활용해서 키클록에서 액세스 토큰 갖고 오기
-    public String getUserAccessToken(String username) {
-        String userId = getUserId(username);
+    public String getUserAccessToken(String username, String password) {
+        String keycloakUrl = "http://localhost:8080/realms/my-realm/protocol/openid-connect/token";
 
-        String keycloakUrl = String.format(
-                "http://localhost:8080/admin/realms/my-realm/users/%s/role-mappings/realm",
-                userId
-        );
+        RestTemplate restTemplate = new RestTemplate();
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(getAdminAccessToken());
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
-        HttpEntity<Void> request = new HttpEntity<>(headers);
+        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.add("grant_type", "password");
+        params.add("client_id", "my-service-client2");
+        params.add("client_secret", "d6eglWPWDxwU0suWHPvgIqLY8zVb53rS");
+        params.add("username", username);
+        params.add("password", password);
+//        params.add("scope", "openid profile email");
 
-        ResponseEntity<Map> response = restTemplate.exchange(
-                keycloakUrl, HttpMethod.GET, request, Map.class
-        );
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
 
-        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-            return (String) response.getBody().get("access_token");
-        } else {
-            throw new RuntimeException("Failed to retrieve user access token: " + response.getBody());
+        try {
+            ResponseEntity<Map> response = restTemplate.postForEntity(keycloakUrl, request, Map.class);
+
+            if (response.getStatusCode() == HttpStatus.OK) {
+                Map<String, Object> responseBody = response.getBody();
+                if (responseBody != null) {
+                    return responseBody.get("access_token").toString();
+                }
+            } else {
+                throw new RuntimeException("Unexpected response: " + response.getStatusCode());
+            }
+        } catch (HttpClientErrorException e) {
+            throw new RuntimeException("Invalid credentials or unauthorized request: " + e.getMessage());
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to get access token: " + e.getMessage());
         }
+
+        return null;
     }
-//    public String getUserAccessToken(String username, String password) {
-//        String keycloakUrl = "http://localhost:8080/realms/my-realm/protocol/openid-connect/token";
-//
-//        HttpHeaders headers = new HttpHeaders();
-//        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-//
-//        MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
-//        body.add("client_id", "custom-admin-cli"); // 클라이언트 ID
-//        body.add("client_secret", "ghodSzOHfjqowuX5M11IA0G4h7DyVNTi"); // 클라이언트 시크릿
-//        body.add("grant_type", "password");
-//        body.add("username", username); // 서비스 DB에 저장된 유저 이름
-//        body.add("password", password); // 유저의 비밀번호
-//
-//        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
-//
-//        try {
-//            // Keycloak에 요청
-//            ResponseEntity<Map> response = restTemplate.postForEntity(keycloakUrl, request, Map.class);
-//
-//            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-//                System.out.println("Keycloak Response: " + response.getBody());
-//                return (String) response.getBody().get("access_token");
-//            } else {
-//                System.err.println("Failed Keycloak Response: " + response.getBody());
-//                throw new RuntimeException("Failed to retrieve user access token: " + response.getBody());
-//            }
-//        } catch (Exception e) {
-//            e.printStackTrace(); // 디버깅을 위한 에러 출력
-//            throw new RuntimeException("Error communicating with Keycloak server: " + e.getMessage(), e);
-//        }
-//    }
 
 
 }
