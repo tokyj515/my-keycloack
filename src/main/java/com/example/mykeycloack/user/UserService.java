@@ -3,6 +3,7 @@ package com.example.mykeycloack.user;
 import com.example.mykeycloack.keycloak.KeycloakService;
 import com.example.mykeycloack.user.User;
 import com.example.mykeycloack.user.UserRepository;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -37,4 +38,25 @@ public class UserService {
 
         return savedUser; // 저장된 사용자 반환
     }
+
+    public String loginUser(User user, HttpSession session) {
+        try {
+            System.out.println("서비스단:" + user.getUsername() + " "+ user.getPassword());
+
+            // Keycloak에서 액세스 토큰 요청
+            String accessToken = keycloakService.getUserAccessToken(user.getUsername());
+
+            System.out.println("로그인: " +accessToken);
+
+            // 세션에 사용자 정보 및 액세스 토큰 저장
+            session.setAttribute("username", user.getUsername());
+            session.setAttribute("accessToken", accessToken);
+
+            return accessToken; // 성공적으로 발급된 액세스 토큰 반환
+        } catch (Exception e) {
+            throw new RuntimeException("로그인 실패: " + e.getMessage(), e);
+        }
+    }
+
+
 }

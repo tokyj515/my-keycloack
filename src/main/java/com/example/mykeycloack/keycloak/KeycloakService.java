@@ -28,12 +28,16 @@ public class KeycloakService {
 
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         body.add("client_id", "custom-admin-cli");
-        body.add("client_secret", "ZjVN2V4luwHHXs28Fc4ii0N746CgRgww");
+        body.add("client_secret", "ghodSzOHfjqowuX5M11IA0G4h7DyVNTi");
         body.add("grant_type", "client_credentials");
 
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
 
         ResponseEntity<Map> response = restTemplate.postForEntity(keycloakUrl, request, Map.class);
+
+        System.out.println("Request Body: " + body);
+        System.out.println("Request Headers: " + headers);
+
 
         if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
             return (String) response.getBody().get("access_token");
@@ -170,6 +174,63 @@ public class KeycloakService {
             throw new RuntimeException("Failed to fetch user ID from Keycloak for username: " + username);
         }
     }
+
+
+    // 유저 정보를 활용해서 키클록에서 액세스 토큰 갖고 오기
+    public String getUserAccessToken(String username) {
+        String userId = getUserId(username);
+
+        String keycloakUrl = String.format(
+                "http://localhost:8080/admin/realms/my-realm/users/%s/role-mappings/realm",
+                userId
+        );
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(getAdminAccessToken());
+
+        HttpEntity<Void> request = new HttpEntity<>(headers);
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                keycloakUrl, HttpMethod.GET, request, Map.class
+        );
+
+        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+            return (String) response.getBody().get("access_token");
+        } else {
+            throw new RuntimeException("Failed to retrieve user access token: " + response.getBody());
+        }
+    }
+//    public String getUserAccessToken(String username, String password) {
+//        String keycloakUrl = "http://localhost:8080/realms/my-realm/protocol/openid-connect/token";
+//
+//        HttpHeaders headers = new HttpHeaders();
+//        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+//
+//        MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+//        body.add("client_id", "custom-admin-cli"); // 클라이언트 ID
+//        body.add("client_secret", "ghodSzOHfjqowuX5M11IA0G4h7DyVNTi"); // 클라이언트 시크릿
+//        body.add("grant_type", "password");
+//        body.add("username", username); // 서비스 DB에 저장된 유저 이름
+//        body.add("password", password); // 유저의 비밀번호
+//
+//        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
+//
+//        try {
+//            // Keycloak에 요청
+//            ResponseEntity<Map> response = restTemplate.postForEntity(keycloakUrl, request, Map.class);
+//
+//            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+//                System.out.println("Keycloak Response: " + response.getBody());
+//                return (String) response.getBody().get("access_token");
+//            } else {
+//                System.err.println("Failed Keycloak Response: " + response.getBody());
+//                throw new RuntimeException("Failed to retrieve user access token: " + response.getBody());
+//            }
+//        } catch (Exception e) {
+//            e.printStackTrace(); // 디버깅을 위한 에러 출력
+//            throw new RuntimeException("Error communicating with Keycloak server: " + e.getMessage(), e);
+//        }
+//    }
 
 
 }
