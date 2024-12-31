@@ -8,6 +8,9 @@
 <div th:if="${username}">
   <p>Hello, <span th:text="${username}"></span>!</p>
   <p>Your Access Token: <span th:text="${accessToken}"></span></p>
+  <form action="/logout" method="post">
+    <button type="submit">Log out</button>
+  </form>
 </div>
 <div th:if="${username == null}">
   <p>You are not logged in. Please <a href="/login">log in</a>.</p>
