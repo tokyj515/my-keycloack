@@ -4,6 +4,8 @@ import com.example.mykeycloack.keycloak.KeycloakService;
 import com.example.mykeycloack.user.User;
 import com.example.mykeycloack.user.UserService;
 import jakarta.servlet.http.HttpSession;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -25,17 +27,10 @@ public class AppController {
 
     private final KeycloakService keycloakService;
     private final UserService userService;
-
     private final OAuth2AuthorizedClientService authorizedClientService;
 
-    /**
-     * **"keycloak"**은 Spring Security의 클라이언트 등록 식별자입니다. 그대로 사용하세요.
-     * Access Token을 가져오지 못하는 문제는 설정이 아닌 인증 흐름이나 Keycloak 설정에서 발생했을 가능성이 높습니다.
-     * 로그를 통해 Access Token 발급 과정과 Spring Security 내부 동작을 점검하세요. 문제가 계속되면 관련 로그를 공유해 주시면 추가로 도와드릴 수 있습니다!
-     * */
-
     @GetMapping("/home")
-    public String home(Authentication authentication, Model model) {
+    public String home(Authentication authentication, Model model, HttpSession session) {
         if (authentication != null) {
             System.out.println("Authorities: " + authentication.getAuthorities());
             if (authentication.getPrincipal() instanceof OidcUser oidcUser) {
@@ -52,40 +47,91 @@ public class AppController {
                 String accessToken = authorizedClient.getAccessToken().getTokenValue();
                 model.addAttribute("accessToken", accessToken);
 
+                // 세션에 Access Token 저장
+                session.setAttribute("accessToken", accessToken);
+
+                // Access Token 클레임 파싱
                 Map<String, Object> claims = keycloakService.parseJwtClaims(accessToken);
-                System.out.println("Access Token Claims: " + claims);
+
+                // "realm_access.roles"에서 roles 추출 및 가공
+                if (claims.containsKey("realm_access")) {
+                    Map<String, Object> realmAccess = (Map<String, Object>) claims.get("realm_access");
+                    if (realmAccess.containsKey("roles")) {
+                        List<String> roles = (List<String>) realmAccess.get("roles");
+                        List<String> processedRoles = roles.stream()
+                            .map(role -> "ROLE_" + role) // "ROLE_" 접두어 추가
+                            .toList();
+                        session.setAttribute("roles", processedRoles); // 세션에 가공된 roles 저장
+                        System.out.println("Processed Roles: " + processedRoles);
+                    }
+                }
             }
         }
         return "home"; // Thymeleaf 템플릿 이름
     }
-
-
-
 
     @GetMapping("/logout-success")
     public String logout() {
         return "logout-success";
     }
 
-
     @GetMapping("/session-expired")
     public String sessionExpired() {
         return "session-expired"; // 세션 만료 화면
     }
 
+//    @GetMapping("/admin")
+//    public String admin(Authentication authentication, Model model) {
+//        if (authentication != null && authentication.isAuthenticated()) {
+//            model.addAttribute("username", authentication.getName());
+//        }
+//        return "admin"; // 관리자 템플릿
+//    }
 
     @GetMapping("/admin")
-    public String admin(Authentication authentication, Model model) {
+    public String admin(Authentication authentication, HttpSession session, Model model) {
         if (authentication != null && authentication.isAuthenticated()) {
             model.addAttribute("username", authentication.getName());
+
+            // 세션에서 Access Token 가져오기
+            String accessToken = (String) session.getAttribute("accessToken");
+            if (accessToken != null) {
+                System.out.println("Access Token from Session: " + accessToken);
+
+                // Access Token 디코딩 및 클레임 확인
+                Map<String, Object> claims = keycloakService.parseJwtClaims(accessToken);
+                System.out.println("Access Token Claims: " + claims);
+            }
         }
         return "admin"; // 관리자 템플릿
     }
 
 
-    // 사용자 페이지
     @GetMapping("/user")
     public String userPage() {
         return "user";
     }
+
+    // 세션 정보 출력
+    @GetMapping("/session-info")
+    public String sessionInfo(HttpSession session, Authentication authentication, Model model) {
+        // 세션 ID
+        model.addAttribute("sessionId", session.getId());
+
+        // 인증 정보
+        if (authentication != null) {
+            model.addAttribute("username", authentication.getName());
+            model.addAttribute("authorities", authentication.getAuthorities());
+        }
+
+        // 세션 속성들
+        Map<String, Object> sessionAttributes = new HashMap<>();
+        session.getAttributeNames().asIterator().forEachRemaining(attr -> {
+            sessionAttributes.put(attr, session.getAttribute(attr));
+        });
+        model.addAttribute("sessionAttributes", sessionAttributes);
+
+        return "session-info"; // 템플릿 이름
+    }
+
 }

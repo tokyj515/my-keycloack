@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Session Info</title>
+</head>
+<body>
+<h1>Session Information</h1>
+
+<!-- 세션 ID -->
+<p><strong>Session ID:</strong> <span th:text="${sessionId}">Session ID</span></p>
+
+<!-- 인증된 사용자 정보 -->
+<h2>Authenticated User</h2>
+<p><strong>Username:</strong> <span th:text="${username}">Username</span></p>
+<p><strong>Authorities:</strong></p>
+<ul>
+  <li th:each="authority : ${authorities}" th:text="${authority}">Authority</li>
+</ul>
+
+<!-- 세션 속성 -->
+<h2>Session Attributes</h2>
+<table border="1">
+  <thead>
+  <tr>
+    <th>Attribute Name</th>
+    <th>Attribute Value</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr th:each="attribute : ${sessionAttributes}">
+    <td th:text="${attribute.key}">Attribute Name</td>
+    <td th:text="${attribute.value}">Attribute Value</td>
+  </tr>
+  </tbody>
+</table>
+
+<!-- 홈으로 이동 -->
+<p><a href="/home">Go to Home</a></p>
+</body>
+</html>

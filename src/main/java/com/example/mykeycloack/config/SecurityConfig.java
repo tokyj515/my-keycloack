@@ -1,5 +1,6 @@
 package com.example.mykeycloack.config;
 
+import com.example.mykeycloack.keycloak.CustomAuthorizationFilter;
 import com.example.mykeycloack.keycloak.CustomGrantedAuthoritiesMapper;
 import com.example.mykeycloack.keycloak.KeycloakLogoutHandler;
 import com.example.mykeycloack.keycloak.KeycloakService;
@@ -23,6 +24,7 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.client.oidc.web.logout.OidcClientInitiatedLogoutSuccessHandler;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.OAuth2LoginAuthenticationFilter;
 import org.springframework.security.oauth2.core.oidc.user.OidcUserAuthority;
 import org.springframework.security.web.SecurityFilterChain;
 
@@ -51,6 +53,8 @@ public class SecurityConfig {
             .loginPage("/oauth2/authorization/keycloak") // Keycloak 로그인 페이지
             .defaultSuccessUrl("/home", true) // 로그인 성공 후 홈 화면으로 리다이렉트
         )
+        .addFilterBefore(new CustomAuthorizationFilter(authorizedClientService, keycloakService),
+            OAuth2LoginAuthenticationFilter.class) // 필터 추가
         .logout(logout -> logout
             .logoutUrl("/logout") // 로그아웃 URL
             .logoutSuccessHandler(oidcLogoutSuccessHandler) // 로그아웃 후 리다이렉트
