@@ -27,7 +27,11 @@ public class AppController {
 
     private final OAuth2AuthorizedClientService authorizedClientService;
 
-
+    /**
+     * **"keycloak"**은 Spring Security의 클라이언트 등록 식별자입니다. 그대로 사용하세요.
+     * Access Token을 가져오지 못하는 문제는 설정이 아닌 인증 흐름이나 Keycloak 설정에서 발생했을 가능성이 높습니다.
+     * 로그를 통해 Access Token 발급 과정과 Spring Security 내부 동작을 점검하세요. 문제가 계속되면 관련 로그를 공유해 주시면 추가로 도와드릴 수 있습니다!
+     * */
 
     @GetMapping("/home")
     public String home(Authentication authentication, Model model) {
