@@ -10,6 +10,14 @@
   <p>Hello, <span th:text="${username}"></span>!</p>
   <p>Your Access Token: <span th:text="${accessToken}">[Access Token]</span></p>
 
+  <div th:if="${#authentication}">
+    <p>Your Roles: <span th:text="${#authentication.authorities}"></span></p>
+  </div>
+
+  <br>
+  <br>
+  <br>
+
   <!-- Log out 버튼 -->
   <form action="/logout" method="post">
     <button type="submit">Log out</button>

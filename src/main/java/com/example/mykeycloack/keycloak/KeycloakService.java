@@ -1,8 +1,10 @@
 package com.example.mykeycloack.keycloak;
 
 import com.example.mykeycloack.user.User;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import java.util.Base64;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -42,5 +44,20 @@ public class KeycloakService {
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse roles from Access Token", e);
         }
+    }
+
+
+    public Map<String, Object> parseJwtClaims(String token) {
+        try {
+            String[] parts = token.split("\\.");
+            if (parts.length == 3) {
+                String payload = new String(Base64.getUrlDecoder().decode(parts[1]));
+                ObjectMapper objectMapper = new ObjectMapper();
+                return objectMapper.readValue(payload, Map.class);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return Map.of();
     }
 }

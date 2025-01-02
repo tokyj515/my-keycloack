@@ -4,6 +4,7 @@ import com.example.mykeycloack.keycloak.KeycloakService;
 import com.example.mykeycloack.user.User;
 import com.example.mykeycloack.user.UserService;
 import jakarta.servlet.http.HttpSession;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -35,8 +36,11 @@ public class AppController {
 
     @GetMapping("/home")
     public String home(Authentication authentication, Model model) {
-        if (authentication != null && authentication.getPrincipal() instanceof OidcUser oidcUser) {
-            model.addAttribute("username", oidcUser.getName());
+        if (authentication != null) {
+            System.out.println("Authorities: " + authentication.getAuthorities());
+            if (authentication.getPrincipal() instanceof OidcUser oidcUser) {
+                model.addAttribute("username", oidcUser.getName());
+            }
 
             // Access Token 가져오기
             OAuth2AuthorizedClient authorizedClient =
@@ -44,17 +48,17 @@ public class AppController {
                     "keycloak", // 클라이언트 등록 ID
                     authentication.getName()
                 );
-
             if (authorizedClient != null) {
                 String accessToken = authorizedClient.getAccessToken().getTokenValue();
-                System.out.println("Access Token: " + accessToken); // 디버깅용
                 model.addAttribute("accessToken", accessToken);
-            } else {
-                System.out.println("Authorized Client is null");
+
+                Map<String, Object> claims = keycloakService.parseJwtClaims(accessToken);
+                System.out.println("Access Token Claims: " + claims);
             }
         }
-        return "home";
+        return "home"; // Thymeleaf 템플릿 이름
     }
+
 
 
 
