@@ -27,23 +27,23 @@ public class UserService {
      * @param accessToken Keycloak에서 발급된 Access Token
      */
     public void saveUserFromToken(String accessToken) {
-        // 1. Access Token을 사용해 Keycloak에서 사용자 정보 요청
-        Map<String, Object> userInfo = keycloakService.getUserInfoFromToken(accessToken);
-
-        System.out.println("User Info: " + userInfo);
-
-        // 2. 사용자 정보 추출
-        String username = (String) userInfo.get("preferred_username");
-        String email = (String) userInfo.get("email");
-        String name = (String) userInfo.get("name");
-        List<String> roles = (List<String>) ((Map<String, Object>) userInfo.get("realm_access")).get("roles");
-
-        // 3. 사용자 DB 저장
-        User user = new User();
-        user.setUsername(username);
-        user.setEmail(email);
-        user.setRole(String.join(",", roles)); // 여러 Role일 경우 ','로 연결
-        userRepository.save(user);
+//        // 1. Access Token을 사용해 Keycloak에서 사용자 정보 요청
+//        Map<String, Object> userInfo = keycloakService.getUserInfoFromToken(accessToken);
+//
+//        System.out.println("User Info: " + userInfo);
+//
+//        // 2. 사용자 정보 추출
+//        String username = (String) userInfo.get("preferred_username");
+//        String email = (String) userInfo.get("email");
+//        String name = (String) userInfo.get("name");
+//        List<String> roles = (List<String>) ((Map<String, Object>) userInfo.get("realm_access")).get("roles");
+//
+//        // 3. 사용자 DB 저장
+//        User user = new User();
+//        user.setUsername(username);
+//        user.setEmail(email);
+//        user.setRole(String.join(",", roles)); // 여러 Role일 경우 ','로 연결
+//        userRepository.save(user);
     }
 
 
