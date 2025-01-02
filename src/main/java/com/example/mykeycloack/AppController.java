@@ -28,83 +28,31 @@ public class AppController {
     private final OAuth2AuthorizedClientService authorizedClientService;
 
 
-//    // 회원가입 페이지
-//    @GetMapping("/register")
-//    public String showRegistrationForm(Model model) {
-//        model.addAttribute("user", new User()); // User 객체 초기화
-//        return "register";
-//    }
-//
-//
-//    // 회원가입 처리
-//    @PostMapping("/register")
-//    public String registerUser(@ModelAttribute User user, Model model) {
-//        // User 객체를 KeycloakService에 전달
-//        User savedUser = userService.registerUser(user);
-//        System.out.println("savedUser: " + savedUser.toString());
-//        return "redirect:/home"; // 회원가입 완료 후 홈으로 리디렉션
-//    }
-//
-//    // 로그인 페이지
-//    @GetMapping("/login")
-//    public String loginPage() {
-//        return "login";
-//    }
-//
-//
-//    //로컬 스토리지에 저장해서 헤더에 넣어오기
-//
-//    @PostMapping("/login")
-//    public String loginUser(
-//            @ModelAttribute User user, HttpSession session, Model model) {
-//        try {
-//            // UserService를 통해 로그인 처리
-//            String accessToken = userService.loginUser(user, session);
-//
-//            // 로그인 성공 시 홈으로 리디렉션
-//            return "redirect:/home";
-//        } catch (Exception e) {
-//            // 로그인 실패 시 에러 메시지 설정 및 로그인 페이지로 이동
-//            model.addAttribute("error", "Invalid login credentials.");
-//            return "login";
-//        }
-//    }
-
-
-//    @GetMapping("/home")
-//    public String home(Model model, @RequestParam(required = false) String username) {
-//        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-//        if (authentication != null && authentication.isAuthenticated()
-//                && !(authentication instanceof AnonymousAuthenticationToken)) {
-//            model.addAttribute("username", authentication.getName());
-//        } else {
-//            model.addAttribute("username", username);
-//        }
-//        return "home";
-//    }
 
     @GetMapping("/home")
     public String home(Authentication authentication, Model model) {
-        // 사용자 이름 추가
         if (authentication != null && authentication.getPrincipal() instanceof OidcUser oidcUser) {
             model.addAttribute("username", oidcUser.getName());
-        }
 
-        // Access Token 가져오기
-        if (authentication != null && authentication.getPrincipal() != null) {
+            // Access Token 가져오기
             OAuth2AuthorizedClient authorizedClient =
                 authorizedClientService.loadAuthorizedClient(
-                    "my-service-client2", // 등록된 클라이언트 ID와 동일해야 함
+                    "keycloak", // 클라이언트 등록 ID
                     authentication.getName()
                 );
+
             if (authorizedClient != null) {
                 String accessToken = authorizedClient.getAccessToken().getTokenValue();
+                System.out.println("Access Token: " + accessToken); // 디버깅용
                 model.addAttribute("accessToken", accessToken);
+            } else {
+                System.out.println("Authorized Client is null");
             }
         }
-
-        return "home"; // Thymeleaf 템플릿 이름
+        return "home";
     }
+
+
 
     @GetMapping("/logout-success")
     public String logout() {

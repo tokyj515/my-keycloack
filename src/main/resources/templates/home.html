@@ -7,7 +7,7 @@
 <h1>Welcome to the Home Page</h1>
 <div th:if="${username}">
   <p>Hello, <span th:text="${username}"></span>!</p>
-  <p>Your Access Token: <span th:text="${accessToken}"></span></p>
+  <p>Your Access Token: <span th:text="${accessToken}">[Access Token]</span></p>
   <form action="/logout" method="post">
     <button type="submit">Log out</button>
   </form>
