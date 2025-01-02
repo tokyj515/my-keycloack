@@ -68,11 +68,20 @@ public class AppController {
     }
 
 
-    // 관리자 페이지
-    @GetMapping("/admin")
-    public String adminPage() {
-        return "admin";
+    @GetMapping("/session-expired")
+    public String sessionExpired() {
+        return "session-expired"; // 세션 만료 화면
     }
+
+
+    @GetMapping("/admin")
+    public String admin(Authentication authentication, Model model) {
+        if (authentication != null && authentication.isAuthenticated()) {
+            model.addAttribute("username", authentication.getName());
+        }
+        return "admin"; // 관리자 템플릿
+    }
+
 
     // 사용자 페이지
     @GetMapping("/user")
