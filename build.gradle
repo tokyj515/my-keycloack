@@ -45,6 +45,16 @@ dependencies {
 	// MySQL Driver
 	implementation 'mysql:mysql-connector-java:8.0.33'
 
+	//keycloak
+//	implementation 'org.keycloak:keycloak-server-spi:26.0.7' // Keycloak 버전에 맞게 수정
+//	implementation 'org.keycloak:keycloak-services:26.0.7'   // Keycloak 버전에 맞게 수정
+//
+//	compileOnly 'javax.ws.rs:javax.ws.rs-api:2.1.1'      // JAX-RS API
+
+	//JWT
+	implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5' // JSON 처리
 
 	// Test Dependencies
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
