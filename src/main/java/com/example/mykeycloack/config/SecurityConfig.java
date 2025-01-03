@@ -6,6 +6,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.client.oidc.web.logout.OidcClientInitiatedLogoutSuccessHandler;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
@@ -14,17 +16,29 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
   @Bean
-  public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+  public SecurityFilterChain securityFilterChain(HttpSecurity http, ClientRegistrationRepository clientRegistrationRepository) throws Exception {
+
+    OidcClientInitiatedLogoutSuccessHandler oidcLogoutSuccessHandler =
+        new OidcClientInitiatedLogoutSuccessHandler(clientRegistrationRepository);
+    oidcLogoutSuccessHandler.setPostLogoutRedirectUri("http://localhost:8000/logout-success");
+
+
+
     http
         // CSRF 비활성화 (필요에 따라 활성화 가능)
         .csrf(csrf -> csrf.disable())
 
         // 요청별 권한 설정
+//        .authorizeHttpRequests(auth -> auth
+//            .requestMatchers("/admin/**").hasAuthority("LV1") // Keycloak Permission 기반
+//            .requestMatchers("/user").authenticated() // 인증된 사용자만 접근 가능
+//            .anyRequest().permitAll() // 나머지 요청은 모두 허용
+//        )
+
         .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/admin/**").hasAuthority("LV1") // Keycloak Permission 기반
-            .requestMatchers("/user").authenticated() // 인증된 사용자만 접근 가능
-            .anyRequest().permitAll() // 나머지 요청은 모두 허용
+            .anyRequest().authenticated() // 모든 요청은 인증 필요 -> Keycloak에 위임
         )
+
 
         // JWT를 통한 인증 처리
         .oauth2ResourceServer(oauth2 -> oauth2
@@ -43,6 +57,7 @@ public class SecurityConfig {
         .logout(logout -> logout
             .logoutUrl("/logout") // 로그아웃 URL
             .invalidateHttpSession(true) // 세션 무효화
+            .logoutSuccessHandler(oidcLogoutSuccessHandler) // Keycloak 로그아웃 핸들러
             .deleteCookies("JSESSIONID") // 세션 쿠키 삭제
             .logoutSuccessUrl("/logout-success") // 로그아웃 후 리다이렉트
         )
