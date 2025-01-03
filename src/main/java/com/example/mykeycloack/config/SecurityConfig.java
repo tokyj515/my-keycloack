@@ -28,17 +28,10 @@ public class SecurityConfig {
         // CSRF 비활성화 (필요에 따라 활성화 가능)
         .csrf(csrf -> csrf.disable())
 
-        // 요청별 권한 설정
-//        .authorizeHttpRequests(auth -> auth
-//            .requestMatchers("/admin/**").hasAuthority("LV1") // Keycloak Permission 기반
-//            .requestMatchers("/user").authenticated() // 인증된 사용자만 접근 가능
-//            .anyRequest().permitAll() // 나머지 요청은 모두 허용
-//        )
-
+        // 모든 요청은 인증 필요 -> Keycloak에 위임
         .authorizeHttpRequests(auth -> auth
-            .anyRequest().authenticated() // 모든 요청은 인증 필요 -> Keycloak에 위임
+            .anyRequest().authenticated()
         )
-
 
         // JWT를 통한 인증 처리
         .oauth2ResourceServer(oauth2 -> oauth2
