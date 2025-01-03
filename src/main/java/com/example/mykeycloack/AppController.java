@@ -32,7 +32,7 @@ public class AppController {
     @GetMapping("/home")
     public String home(Authentication authentication, Model model, HttpSession session) {
         if (authentication != null) {
-            System.out.println("Authorities: " + authentication.getAuthorities());
+//            System.out.println("Authorities: " + authentication.getAuthorities());
             if (authentication.getPrincipal() instanceof OidcUser oidcUser) {
                 model.addAttribute("username", oidcUser.getName());
             }
@@ -59,10 +59,11 @@ public class AppController {
                     if (realmAccess.containsKey("roles")) {
                         List<String> roles = (List<String>) realmAccess.get("roles");
                         List<String> processedRoles = roles.stream()
-                            .map(role -> "ROLE_" + role) // "ROLE_" 접두어 추가
+//                            .map(role -> "ROLE_" + role) // "ROLE_" 접두어 추가
+//                            .map(role -> role)
                             .toList();
                         session.setAttribute("roles", processedRoles); // 세션에 가공된 roles 저장
-                        System.out.println("Processed Roles: " + processedRoles);
+//                        System.out.println("Processed Roles: " + processedRoles);
                     }
                 }
             }

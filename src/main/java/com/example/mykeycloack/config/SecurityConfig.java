@@ -1,66 +1,53 @@
 package com.example.mykeycloack.config;
 
-import com.example.mykeycloack.keycloak.CustomAuthorizationFilter;
-import com.example.mykeycloack.keycloak.CustomGrantedAuthoritiesMapper;
-import com.example.mykeycloack.keycloak.KeycloakLogoutHandler;
-import com.example.mykeycloack.keycloak.KeycloakService;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.Base64;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Stream;
+import com.example.mykeycloack.keycloak.KeycloakGrantedAuthoritiesConverter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
-import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
-import org.springframework.security.oauth2.client.oidc.web.logout.OidcClientInitiatedLogoutSuccessHandler;
-import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
-import org.springframework.security.oauth2.client.web.OAuth2LoginAuthenticationFilter;
-import org.springframework.security.oauth2.core.oidc.user.OidcUserAuthority;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-  private final KeycloakService keycloakService;
-  private final CustomAccessDeniedHandler accessDeniedHandler;
-  private final OAuth2AuthorizedClientService authorizedClientService;
-
   @Bean
-  public SecurityFilterChain securityFilterChain(HttpSecurity http, ClientRegistrationRepository clientRegistrationRepository) throws Exception {
-    OidcClientInitiatedLogoutSuccessHandler oidcLogoutSuccessHandler =
-        new OidcClientInitiatedLogoutSuccessHandler(clientRegistrationRepository);
-    oidcLogoutSuccessHandler.setPostLogoutRedirectUri("http://localhost:8000/logout-success");
-
+  public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http
+        // CSRF 비활성화 (필요에 따라 활성화 가능)
         .csrf(csrf -> csrf.disable())
+
+        // 요청별 권한 설정
         .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/admin").hasAuthority("ROLE_LV1") // 관리자만 접근 가능
+            .requestMatchers("/admin/**").hasAuthority("LV1") // Keycloak Permission 기반
             .requestMatchers("/user").authenticated() // 인증된 사용자만 접근 가능
-            .anyRequest().permitAll() // 나머지는 모두 접근 가능
+            .anyRequest().permitAll() // 나머지 요청은 모두 허용
         )
+
+        // JWT를 통한 인증 처리
+        .oauth2ResourceServer(oauth2 -> oauth2
+            .jwt(jwt -> jwt
+                .jwtAuthenticationConverter(jwtAuthenticationConverter()) // Access Token 권한 변환
+            )
+        )
+
+        // OAuth2 로그인 설정
         .oauth2Login(oauth2 -> oauth2
             .loginPage("/oauth2/authorization/keycloak") // Keycloak 로그인 페이지
-            .defaultSuccessUrl("/home", true) // 로그인 성공 후 홈 화면으로 리다이렉트
+            .defaultSuccessUrl("/home", true) // 로그인 성공 후 홈으로 리다이렉트
         )
-        .addFilterBefore(new CustomAuthorizationFilter(authorizedClientService, keycloakService),
-            OAuth2LoginAuthenticationFilter.class) // 필터 추가
+
+        // 로그아웃 설정
         .logout(logout -> logout
             .logoutUrl("/logout") // 로그아웃 URL
-            .logoutSuccessHandler(oidcLogoutSuccessHandler) // 로그아웃 후 리다이렉트
             .invalidateHttpSession(true) // 세션 무효화
             .deleteCookies("JSESSIONID") // 세션 쿠키 삭제
+            .logoutSuccessUrl("/logout-success") // 로그아웃 후 리다이렉트
         )
+
+        // 세션 관리
         .sessionManagement(session -> session
             .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED) // 필요한 경우에만 세션 생성
             .maximumSessions(1) // 최대 1개의 세션만 허용
@@ -70,6 +57,12 @@ public class SecurityConfig {
     return http.build();
   }
 
+  // JWT에서 Keycloak 권한 정보 추출
+  private JwtAuthenticationConverter jwtAuthenticationConverter() {
+    JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+    converter.setJwtGrantedAuthoritiesConverter(new KeycloakGrantedAuthoritiesConverter());
+    return converter;
+  }
 }
 
 //http://localhost:8000/oauth2/authorization/keycloak

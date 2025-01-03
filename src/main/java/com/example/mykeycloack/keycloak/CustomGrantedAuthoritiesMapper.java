@@ -20,7 +20,8 @@ public class CustomGrantedAuthoritiesMapper {
       Map<String, Object> realmAccess = (Map<String, Object>) claims.get("realm_access");
       if (realmAccess.containsKey("roles")) {
         List<String> roles = (List<String>) realmAccess.get("roles");
-        roles.forEach(role -> authorities.add(new SimpleGrantedAuthority("ROLE_" + role)));
+//        roles.forEach(role -> authorities.add(new SimpleGrantedAuthority("ROLE_" + role)));
+        roles.forEach(role -> authorities.add(new SimpleGrantedAuthority(role)));
       }
     }
 
