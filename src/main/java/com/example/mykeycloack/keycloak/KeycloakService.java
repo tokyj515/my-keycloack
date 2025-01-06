@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import java.util.Base64;
+import java.util.HashMap;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,13 @@ public class KeycloakService {
     private final String REALM = "my-realm";
     private final String ADMIN_CLIENT_ID = "custom-admin-cli";
     private final String ADMIN_CLIENT_SECRET = "ghodSzOHfjqowuX5M11IA0G4h7DyVNTi";
+
+    // Keycloak 토큰 엔드포인트 URL (Keycloak 설정에 따라 변경)
+    private final String tokenEndpoint = "http://localhost:8080/realms/my-realm/protocol/openid-connect/token";
+
+    // Keycloak 클라이언트 정보
+    private final String clientId = "my-service-client2";
+    private final String clientSecret = "d6eglWPWDxwU0suWHPvgIqLY8zVb53rS";
 
 
     /**
@@ -59,5 +67,30 @@ public class KeycloakService {
             e.printStackTrace();
         }
         return Map.of();
+    }
+
+
+
+    public String refreshAccessToken(String refreshToken) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBasicAuth(clientId, clientSecret);  // 클라이언트 인증
+
+        Map<String, String> body = new HashMap<>();
+        body.put("grant_type", "refresh_token");
+        body.put("refresh_token", refreshToken);
+
+        HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(body, headers);
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+            tokenEndpoint,
+            HttpMethod.POST,
+            requestEntity,
+            Map.class
+        );
+
+        // 새 Access Token 반환
+        Map<String, Object> responseBody = response.getBody();
+        assert responseBody != null;
+        return (String) responseBody.get("access_token");
     }
 }

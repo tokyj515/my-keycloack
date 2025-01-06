@@ -3,6 +3,25 @@
 <head>
   <title>Home</title>
 </head>
+<script th:inline="javascript">
+  let sessionExpiryTime = /*[[${sessionExpiryTime}]]*/ 0; // 백엔드에서 제공하는 만료 시간
+  sessionExpiryTime = Number(sessionExpiryTime); // 안전한 숫자 변환
+  let timer = isNaN(sessionExpiryTime) ? 0 : sessionExpiryTime; // NaN 방지
+
+  function updateTimer() {
+    if (timer <= 0) {
+      document.getElementById('session-expiry').textContent = 'Session Expired';
+      alert('Your session has expired. Please log in again.');
+      window.location.href = '/logout';
+    } else {
+      document.getElementById('session-expiry').textContent = `${timer} seconds`;
+      timer--;
+    }
+  }
+
+  setInterval(updateTimer, 1000); // 1초마다 타이머 갱신
+</script>
+
 <body>
 <h1>Welcome to the Home Page</h1>
 
@@ -13,6 +32,12 @@
   <div th:if="${#authentication}">
     <p>Your Roles: <span th:text="${#authentication.authorities}"></span></p>
   </div>
+
+
+  <p>Your Session Expires In: <span id="session-expiry"></span> seconds</p>
+  <form action="/refresh-token" method="post">
+    <button type="submit">Extend Session</button>
+  </form>
 
   <br>
   <br>

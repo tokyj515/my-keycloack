@@ -32,17 +32,14 @@ public class AppController {
     @GetMapping("/home")
     public String home(Authentication authentication, Model model, HttpSession session) {
         if (authentication != null) {
-//            System.out.println("Authorities: " + authentication.getAuthorities());
             if (authentication.getPrincipal() instanceof OidcUser oidcUser) {
                 model.addAttribute("username", oidcUser.getName());
             }
 
             // Access Token 가져오기
             OAuth2AuthorizedClient authorizedClient =
-                authorizedClientService.loadAuthorizedClient(
-                    "keycloak", // 클라이언트 등록 ID
-                    authentication.getName()
-                );
+                authorizedClientService.loadAuthorizedClient("keycloak", authentication.getName());
+
             if (authorizedClient != null) {
                 String accessToken = authorizedClient.getAccessToken().getTokenValue();
                 model.addAttribute("accessToken", accessToken);
@@ -50,25 +47,50 @@ public class AppController {
                 // 세션에 Access Token 저장
                 session.setAttribute("accessToken", accessToken);
 
+                // 만료 시간 계산
+                if (authorizedClient.getAccessToken().getExpiresAt() != null) {
+                    long expiresAt = authorizedClient.getAccessToken().getExpiresAt().toEpochMilli(); // 만료 시각
+                    long currentTime = System.currentTimeMillis(); // 현재 시각
+                    int remainingTimeInSeconds = (int) ((expiresAt - currentTime) / 1000);
+
+                    // 만료 시간 최소 값 설정
+                    if (remainingTimeInSeconds < 0) {
+                        remainingTimeInSeconds = 1; // 최소 1초로 설정
+                    }
+                    model.addAttribute("sessionExpiryTime", remainingTimeInSeconds);
+                    System.out.println("Access Token Expiry Time: " + remainingTimeInSeconds + " seconds");
+                } else {
+                    model.addAttribute("sessionExpiryTime", 0);
+                }
+
                 // Access Token 클레임 파싱
                 Map<String, Object> claims = keycloakService.parseJwtClaims(accessToken);
-
-                // "realm_access.roles"에서 roles 추출 및 가공
                 if (claims.containsKey("realm_access")) {
                     Map<String, Object> realmAccess = (Map<String, Object>) claims.get("realm_access");
                     if (realmAccess.containsKey("roles")) {
                         List<String> roles = (List<String>) realmAccess.get("roles");
-                        List<String> processedRoles = roles.stream()
-//                            .map(role -> "ROLE_" + role) // "ROLE_" 접두어 추가
-//                            .map(role -> role)
-                            .toList();
-                        session.setAttribute("roles", processedRoles); // 세션에 가공된 roles 저장
-//                        System.out.println("Processed Roles: " + processedRoles);
+                        List<String> processedRoles = roles.stream().toList();
+                        session.setAttribute("roles", processedRoles);
                     }
                 }
             }
         }
-        return "home"; // Thymeleaf 템플릿 이름
+        return "home";
+    }
+
+
+    @PostMapping("/refresh-token")
+    public String refreshToken(HttpSession session, Authentication authentication) {
+        OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient("keycloak", authentication.getName());
+
+        if (client != null) {
+            String refreshToken = client.getRefreshToken().getTokenValue();
+            String newAccessToken = keycloakService.refreshAccessToken(refreshToken);
+            session.setAttribute("accessToken", newAccessToken);
+            return "redirect:/home";
+        }
+
+        return "redirect:/logout";
     }
 
     @GetMapping("/logout-success")
@@ -80,14 +102,6 @@ public class AppController {
     public String sessionExpired() {
         return "session-expired"; // 세션 만료 화면
     }
-
-//    @GetMapping("/admin")
-//    public String admin(Authentication authentication, Model model) {
-//        if (authentication != null && authentication.isAuthenticated()) {
-//            model.addAttribute("username", authentication.getName());
-//        }
-//        return "admin"; // 관리자 템플릿
-//    }
 
     @GetMapping("/admin")
     public String admin(Authentication authentication, HttpSession session, Model model) {
