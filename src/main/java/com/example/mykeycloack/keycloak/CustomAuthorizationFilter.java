@@ -51,7 +51,8 @@ public class CustomAuthorizationFilter extends OncePerRequestFilter {
           if (realmAccess.containsKey("roles")) {
             List<String> roles = (List<String>) realmAccess.get("roles");
             List<SimpleGrantedAuthority> authorities = roles.stream()
-                .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
+//                .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
+                .map(role -> new SimpleGrantedAuthority(role))
                 .collect(Collectors.toList());
 
             // 새로운 Authentication 객체 생성 및 SecurityContext 설정

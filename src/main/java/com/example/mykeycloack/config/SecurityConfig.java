@@ -45,7 +45,7 @@ public class SecurityConfig {
     http
         .csrf(csrf -> csrf.disable())
         .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/admin").hasAuthority("ROLE_LV1") // 관리자만 접근 가능
+            .requestMatchers("/admin").hasAuthority("LV1") // 관리자만 접근 가능
             .requestMatchers("/user").authenticated() // 인증된 사용자만 접근 가능
             .anyRequest().permitAll() // 나머지는 모두 접근 가능
         )

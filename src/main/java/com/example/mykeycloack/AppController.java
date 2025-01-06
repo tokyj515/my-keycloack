@@ -59,7 +59,7 @@ public class AppController {
                     if (realmAccess.containsKey("roles")) {
                         List<String> roles = (List<String>) realmAccess.get("roles");
                         List<String> processedRoles = roles.stream()
-                            .map(role -> "ROLE_" + role) // "ROLE_" 접두어 추가
+//                            .map(role -> "ROLE_" + role) // "ROLE_" 접두어 추가
                             .toList();
                         session.setAttribute("roles", processedRoles); // 세션에 가공된 roles 저장
                         System.out.println("Processed Roles: " + processedRoles);
