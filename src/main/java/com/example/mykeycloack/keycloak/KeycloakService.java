@@ -71,26 +71,46 @@ public class KeycloakService {
 
 
 
+//    public String refreshAccessToken(String refreshToken) {
+//        HttpHeaders headers = new HttpHeaders();
+//        headers.setBasicAuth(clientId, clientSecret);  // 클라이언트 인증
+//
+//        Map<String, String> body = new HashMap<>();
+//        body.put("grant_type", "refresh_token");
+//        body.put("refresh_token", refreshToken);
+//
+//        HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(body, headers);
+//
+//        ResponseEntity<Map> response = restTemplate.exchange(
+//            tokenEndpoint,
+//            HttpMethod.POST,
+//            requestEntity,
+//            Map.class
+//        );
+//
+//        // 새 Access Token 반환
+//        Map<String, Object> responseBody = response.getBody();
+//        assert responseBody != null;
+//        return (String) responseBody.get("access_token");
+//    }
+
     public String refreshAccessToken(String refreshToken) {
+        String tokenEndpoint = "http://localhost:8080/realms/my-realm/protocol/openid-connect/token";
+
         HttpHeaders headers = new HttpHeaders();
-        headers.setBasicAuth(clientId, clientSecret);  // 클라이언트 인증
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-        Map<String, String> body = new HashMap<>();
-        body.put("grant_type", "refresh_token");
-        body.put("refresh_token", refreshToken);
+        MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+        body.add("grant_type", "refresh_token");  // 필수 파라미터
+        body.add("client_id", clientId);
+        body.add("client_secret", clientSecret);
+        body.add("refresh_token", refreshToken);
 
-        HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(body, headers);
+        HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(body, headers);
 
-        ResponseEntity<Map> response = restTemplate.exchange(
-            tokenEndpoint,
-            HttpMethod.POST,
-            requestEntity,
-            Map.class
-        );
+        RestTemplate restTemplate = new RestTemplate();
+        ResponseEntity<String> response = restTemplate.exchange(tokenEndpoint, HttpMethod.POST, requestEntity, String.class);
 
-        // 새 Access Token 반환
-        Map<String, Object> responseBody = response.getBody();
-        assert responseBody != null;
-        return (String) responseBody.get("access_token");
+        return response.getBody();
     }
 }
