@@ -12,8 +12,6 @@ public class UserService {
     private final UserRepository userRepository;
     private final KeycloakService keycloakService;
     private final BCryptPasswordEncoder passwordEncoder;
-    private final TokenService tokenService;
-
 
 
     /**
